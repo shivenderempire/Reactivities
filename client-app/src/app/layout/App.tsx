@@ -7,8 +7,11 @@ import ActivityDashboard from "../../features/activities/dashboard/ActivityDashb
 import { v4 as uuid } from "uuid";
 import agent from "../api/agent";
 import LoadingComponent from "./LoadingComponent";
+import { useStore } from "../../stores/store";
+import { observer } from "mobx-react-lite";
 
 function App() {
+  const { activityStore, activityStore1 } = useStore();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<
     Activity | undefined
@@ -18,22 +21,27 @@ function App() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    agent.Activities.list().then((response) => {
-      const activities: Activity[] = [];
+    activityStore.loadingActivities();
+    //old
+    // agent.Activities.list().then((response) => {
 
-      response.forEach((activity) => {
-        activity.date = activity.date.split("T")[0];
-        activities.push(activity);
-      });
-      setActivities(activities);
-      setLoading(false);
-    });
+    //   const activities: Activity[] = [];
+
+    //   response.forEach((activity) => {
+    //     activity.date = activity.date.split("T")[0];
+    //     activities.push(activity);
+    //   });
+    //   setActivities(activities);
+    //   setLoading(false);
+    // });
+
+    //older
     // axios
     //   .get<Activity[]>("http://localhost:5000/api/Activities")
     //   .then((response: any) => {
     //     setActivities(response.data);
     //   });
-  }, []);
+  }, [activityStore]);
 
   const handleSelectedActivity = (id: string) => {
     const activity = [...activities];
@@ -51,14 +59,22 @@ function App() {
   const handleFormClose = () => {
     setEditMode(false);
   };
+
   const handleEditAndCreateActivity = (activity: Activity) => {
     setSubmitting(true);
     if (activity.id) {
       agent.Activities.update(activity).then(() => {});
-      setActivities([
-        ...activities.filter((x) => x.id !== activity.id),
-        activity,
-      ]);
+      const activitiesData = [...activities];
+      const index: number = activitiesData.findIndex(
+        (x) => x.id === activity.id,
+      );
+      activitiesData[index] = activity;
+      setActivities(activitiesData);
+
+      // setActivities([
+      //   ...activities.filter((x) => x.id !== activity.id),
+      //   activity,
+      // ]);
       setEditMode(false);
       setSelectedActivity(activity);
       setSubmitting(false);
@@ -88,7 +104,7 @@ function App() {
     });
   };
 
-  if (loading)
+  if (activityStore.loadingInitial)
     return <LoadingComponent inverted={loading} content="Loading........" />;
   return (
     <Fragment>
@@ -96,7 +112,7 @@ function App() {
       <NavBar openForm={handleFormForOpen} />
       <Container style={{ marginTop: "7em" }}>
         <ActivityDashboard
-          activities={activities}
+          activities={activityStore.activities}
           SelectedActivity={selectedActivity}
           OnSelectedActivity={handleSelectedActivity}
           OnCancelActivity={handleCancelActivity}
@@ -117,4 +133,4 @@ function App() {
   );
 }
 
-export default App;
+export default observer(App);
